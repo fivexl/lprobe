@@ -42,3 +42,14 @@ spec:
         command: ["/bin/lprobe", "-port=8080", "-endpoint=/liveness"]
       initialDelaySeconds: 10
 ```
+
+# Dev Guide
+```
+export GO111MODULE=on
+go mod init lprobe
+go mod tidy
+go run .
+```
+
+# Source code used
+- https://github.com/grpc-ecosystem/grpc-health-probe
