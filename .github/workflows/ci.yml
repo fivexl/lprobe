@@ -9,9 +9,30 @@ on:
 
 jobs:
 
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v3
+      with:
+        go-version: ^1.19
+      id: go      
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Run test.sh
+      run: |
+        scripts/test.sh
+
   build:
     name: Build
     runs-on: ubuntu-latest
+    needs: [ tests ]
     steps:
 
     - name: Set up Go 1.x
