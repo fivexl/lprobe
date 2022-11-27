@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package main
+package grpchealthprobe
 
 import (
 	"context"
@@ -22,7 +22,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/signal"
 	"strings"
 	"time"
 	"unicode"
@@ -73,7 +72,6 @@ const (
 func init() {
 	flagSet := flag.NewFlagSet("", flag.ContinueOnError)
 	log.SetFlags(0)
-	flagSet.StringVar(&flAddr, "addr", "", "(required) tcp host:port to connect")
 	flagSet.StringVar(&flService, "service", "", "service name to check (default: \"\")")
 	flagSet.StringVar(&flUserAgent, "user-agent", "grpc_health_probe", "user-agent header value of health check requests")
 	// timeouts
@@ -92,19 +90,17 @@ func init() {
 	flagSet.BoolVar(&flGZIP, "gzip", false, "use GZIPCompressor for requests and GZIPDecompressor for response (default: false)")
 	flagSet.BoolVar(&flSPIFFE, "spiffe", false, "use SPIFFE to obtain mTLS credentials")
 
-	err := flagSet.Parse(os.Args[1:])
-	if err != nil {
-		os.Exit(StatusInvalidArguments)
-	}
+	// skip flags check
+	// err := flagSet.Parse(os.Args[1:])
+	// if err != nil {
+	// 	os.Exit(StatusInvalidArguments)
+	// }
 
 	argError := func(s string, v ...interface{}) {
 		log.Printf("error: "+s, v...)
 		os.Exit(StatusInvalidArguments)
 	}
 
-	if flAddr == "" {
-		argError("-addr not specified")
-	}
 	if flConnTimeout <= 0 {
 		argError("-connect-timeout must be greater than zero (specified: %v)", flConnTimeout)
 	}
@@ -206,22 +202,10 @@ func buildCredentials(skipVerify bool, caCerts, clientCert, clientKey, serverNam
 	return credentials.NewTLS(&cfg), nil
 }
 
-func main() {
-	retcode := 0
-	defer func() { os.Exit(retcode) }()
+func Grpchealthprobe(flAddr string) (string, int) {
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, _ := context.WithCancel(context.Background())
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		sig := <-c
-		if sig == os.Interrupt {
-			log.Printf("cancellation received")
-			cancel()
-			return
-		}
-	}()
 
 	opts := []grpc.DialOption{
 		grpc.WithUserAgent(flUserAgent),
@@ -229,15 +213,13 @@ func main() {
 	}
 	if flTLS && flSPIFFE {
 		log.Printf("-tls and -spiffe are mutually incompatible")
-		retcode = StatusInvalidArguments
-		return
+		return "ERR", StatusInvalidArguments
 	}
 	if flTLS {
 		creds, err := buildCredentials(flTLSNoVerify, flTLSCACert, flTLSClientCert, flTLSClientKey, flTLSServerName)
 		if err != nil {
 			log.Printf("failed to initialize tls credentials. error=%v", err)
-			retcode = StatusInvalidArguments
-			return
+			return "ERR", StatusInvalidArguments
 		}
 		opts = append(opts, grpc.WithTransportCredentials(creds))
 	} else if flALTS {
@@ -248,8 +230,7 @@ func main() {
 		source, err := workloadapi.NewX509Source(spiffeCtx)
 		if err != nil {
 			log.Printf("failed to initialize tls credentials with spiffe. error=%v", err)
-			retcode = StatusSpiffeFailed
-			return
+			return "ERR", StatusSpiffeFailed
 		}
 		if flVerbose {
 			svid, err := source.GetX509SVID()
@@ -284,8 +265,7 @@ func main() {
 		} else {
 			log.Printf("error: failed to connect service at %q: %+v", flAddr, err)
 		}
-		retcode = StatusConnectionFailure
-		return
+		return "ERR", StatusConnectionFailure
 	}
 	connDuration := time.Since(connStart)
 	defer conn.Close()
@@ -308,18 +288,15 @@ func main() {
 		} else {
 			log.Printf("error: health rpc failed: %+v", err)
 		}
-		retcode = StatusRPCFailure
-		return
+		return "ERR", StatusRPCFailure
 	}
 	rpcDuration := time.Since(rpcStart)
 
 	if resp.GetStatus() != healthpb.HealthCheckResponse_SERVING {
-		log.Printf("service unhealthy (responded with %q)", resp.GetStatus().String())
-		retcode = StatusUnhealthy
-		return
+		return resp.GetStatus().String(), StatusUnhealthy
 	}
 	if flVerbose {
 		log.Printf("time elapsed: connect=%v rpc=%v", connDuration, rpcDuration)
 	}
-	log.Printf("status: %v", resp.GetStatus().String())
+	return  resp.GetStatus().String(), 0
 }
