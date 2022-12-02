@@ -11,36 +11,28 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package grpchealthprobe
+
+package main
 
 import (
-	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"time"
 	"unicode"
 
-	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
-	"github.com/spiffe/go-spiffe/v2/workloadapi"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/alts"
-	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 )
 
 var (
-	flAddr          string
+	flMode			string
+	flPort 			int
+	flUserAgent     string	
+	flEndpoint 		string
 	flService       string
-	flUserAgent     string
 	flConnTimeout   time.Duration
 	flRPCHeaders    = rpcHeaders{MD: make(metadata.MD)}
 	flRPCTimeout    time.Duration
@@ -57,6 +49,8 @@ var (
 )
 
 const (
+	// Address to call 
+	LocalAddress = "127.0.0.1"
 	// StatusInvalidArguments indicates specified invalid arguments.
 	StatusInvalidArguments = 1
 	// StatusConnectionFailure indicates connection failed.
@@ -69,13 +63,24 @@ const (
 	StatusSpiffeFailed = 20
 )
 
+func getSupportedModes() []string {
+	return []string{"http", "grpc"}
+}
+
 func init() {
 	flagSet := flag.NewFlagSet("", flag.ContinueOnError)
 	log.SetFlags(0)
+	// core settings
+	flagSet.StringVar(&flMode, "mode", "http", "Select mode: http, grpc (default: http)")
+	flagSet.IntVar(&flPort, "port", 8080, "port number to check (defaut 8080)")
+	flagSet.StringVar(&flUserAgent, "user-agent", "lprobe", "user-agent header value of health check requests")
+	// HTTP settings
+	flagSet.StringVar(&flEndpoint, "endpoint", "/", "HTTP endpoint (default: /)")
+	// gRPC settings
 	flagSet.StringVar(&flService, "service", "", "service name to check (default: \"\")")
-	flagSet.StringVar(&flUserAgent, "user-agent", "grpc_health_probe", "user-agent header value of health check requests")
 	// timeouts
 	flagSet.DurationVar(&flConnTimeout, "connect-timeout", time.Second, "timeout for establishing connection")
+	// headers
 	flagSet.Var(&flRPCHeaders, "rpc-header", "additional RPC headers in 'name: value' format. May specify more than one via multiple flags.")
 	flagSet.DurationVar(&flRPCTimeout, "rpc-timeout", time.Second, "timeout for health check rpc")
 	// tls settings
@@ -90,17 +95,19 @@ func init() {
 	flagSet.BoolVar(&flGZIP, "gzip", false, "use GZIPCompressor for requests and GZIPDecompressor for response (default: false)")
 	flagSet.BoolVar(&flSPIFFE, "spiffe", false, "use SPIFFE to obtain mTLS credentials")
 
-	// skip flags check
-	// err := flagSet.Parse(os.Args[1:])
-	// if err != nil {
-	// 	os.Exit(StatusInvalidArguments)
-	// }
+	err := flagSet.Parse(os.Args[1:])
+	if err != nil {
+		os.Exit(StatusInvalidArguments)
+	}
 
 	argError := func(s string, v ...interface{}) {
 		log.Printf("error: "+s, v...)
 		os.Exit(StatusInvalidArguments)
 	}
 
+	if !slices.Contains(getSupportedModes(), flMode)  {
+		argError("Unsupported -mode. Please use one of %v", getSupportedModes())
+	}
 	if flConnTimeout <= 0 {
 		argError("-connect-timeout must be greater than zero (specified: %v)", flConnTimeout)
 	}
@@ -140,7 +147,7 @@ func init() {
 
 	if flVerbose {
 		log.Printf("parsed options:")
-		log.Printf("> addr=%s conn_timeout=%v rpc_timeout=%v", flAddr, flConnTimeout, flRPCTimeout)
+		log.Printf("> conn_timeout=%v rpc_timeout=%v", flConnTimeout, flRPCTimeout)
 		if flRPCHeaders.Len() > 0 {
 			log.Printf("> headers: %s", flRPCHeaders)
 		}
@@ -171,132 +178,3 @@ func (s *rpcHeaders) Set(value string) error {
 	return nil
 }
 
-func buildCredentials(skipVerify bool, caCerts, clientCert, clientKey, serverName string) (credentials.TransportCredentials, error) {
-	var cfg tls.Config
-
-	if clientCert != "" && clientKey != "" {
-		keyPair, err := tls.LoadX509KeyPair(clientCert, clientKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load tls client cert/key pair. error=%v", err)
-		}
-		cfg.Certificates = []tls.Certificate{keyPair}
-	}
-
-	if skipVerify {
-		cfg.InsecureSkipVerify = true
-	} else if caCerts != "" {
-		// override system roots
-		rootCAs := x509.NewCertPool()
-		pem, err := ioutil.ReadFile(caCerts)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load root CA certificates from file (%s) error=%v", caCerts, err)
-		}
-		if !rootCAs.AppendCertsFromPEM(pem) {
-			return nil, fmt.Errorf("no root CA certs parsed from file %s", caCerts)
-		}
-		cfg.RootCAs = rootCAs
-	}
-	if serverName != "" {
-		cfg.ServerName = serverName
-	}
-	return credentials.NewTLS(&cfg), nil
-}
-
-func Grpchealthprobe(flAddr string) (string, int) {
-
-	ctx, _ := context.WithCancel(context.Background())
-
-
-	opts := []grpc.DialOption{
-		grpc.WithUserAgent(flUserAgent),
-		grpc.WithBlock(),
-	}
-	if flTLS && flSPIFFE {
-		log.Printf("-tls and -spiffe are mutually incompatible")
-		return "ERR", StatusInvalidArguments
-	}
-	if flTLS {
-		creds, err := buildCredentials(flTLSNoVerify, flTLSCACert, flTLSClientCert, flTLSClientKey, flTLSServerName)
-		if err != nil {
-			log.Printf("failed to initialize tls credentials. error=%v", err)
-			return "ERR", StatusInvalidArguments
-		}
-		opts = append(opts, grpc.WithTransportCredentials(creds))
-	} else if flALTS {
-		creds := alts.NewServerCreds(alts.DefaultServerOptions())
-		opts = append(opts, grpc.WithTransportCredentials(creds))
-	} else if flSPIFFE {
-		spiffeCtx, _ := context.WithTimeout(ctx, flRPCTimeout)
-		source, err := workloadapi.NewX509Source(spiffeCtx)
-		if err != nil {
-			log.Printf("failed to initialize tls credentials with spiffe. error=%v", err)
-			return "ERR", StatusSpiffeFailed
-		}
-		if flVerbose {
-			svid, err := source.GetX509SVID()
-			if err != nil {
-				log.Fatalf("error getting x509 svid: %+v", err)
-			}
-			log.Printf("SPIFFE Verifiable Identity Document (SVID): %q", svid.ID)
-		}
-		creds := credentials.NewTLS(tlsconfig.MTLSClientConfig(source, source, tlsconfig.AuthorizeAny()))
-		opts = append(opts, grpc.WithTransportCredentials(creds))
-	} else {
-		opts = append(opts, grpc.WithInsecure())
-	}
-
-	if flGZIP {
-		opts = append(opts,
-			grpc.WithCompressor(grpc.NewGZIPCompressor()),
-			grpc.WithDecompressor(grpc.NewGZIPDecompressor()),
-		)
-	}
-
-	if flVerbose {
-		log.Print("establishing connection")
-	}
-	connStart := time.Now()
-	dialCtx, dialCancel := context.WithTimeout(ctx, flConnTimeout)
-	defer dialCancel()
-	conn, err := grpc.DialContext(dialCtx, flAddr, opts...)
-	if err != nil {
-		if err == context.DeadlineExceeded {
-			log.Printf("timeout: failed to connect service %q within %v", flAddr, flConnTimeout)
-		} else {
-			log.Printf("error: failed to connect service at %q: %+v", flAddr, err)
-		}
-		return "ERR", StatusConnectionFailure
-	}
-	connDuration := time.Since(connStart)
-	defer conn.Close()
-	if flVerbose {
-		log.Printf("connection established (took %v)", connDuration)
-	}
-
-	rpcStart := time.Now()
-	rpcCtx, rpcCancel := context.WithTimeout(ctx, flRPCTimeout)
-	defer rpcCancel()
-	rpcCtx = metadata.NewOutgoingContext(rpcCtx, flRPCHeaders.MD)
-	resp, err := healthpb.NewHealthClient(conn).Check(rpcCtx,
-		&healthpb.HealthCheckRequest{
-			Service: flService})
-	if err != nil {
-		if stat, ok := status.FromError(err); ok && stat.Code() == codes.Unimplemented {
-			log.Printf("error: this server does not implement the grpc health protocol (grpc.health.v1.Health): %s", stat.Message())
-		} else if stat, ok := status.FromError(err); ok && stat.Code() == codes.DeadlineExceeded {
-			log.Printf("timeout: health rpc did not complete within %v", flRPCTimeout)
-		} else {
-			log.Printf("error: health rpc failed: %+v", err)
-		}
-		return "ERR", StatusRPCFailure
-	}
-	rpcDuration := time.Since(rpcStart)
-
-	if resp.GetStatus() != healthpb.HealthCheckResponse_SERVING {
-		return resp.GetStatus().String(), StatusUnhealthy
-	}
-	if flVerbose {
-		log.Printf("time elapsed: connect=%v rpc=%v", connDuration, rpcDuration)
-	}
-	return  resp.GetStatus().String(), 0
-}
