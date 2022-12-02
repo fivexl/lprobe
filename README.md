@@ -14,7 +14,7 @@ A command-line tool to perform Local Health Check Probes inside Container Images
 ### Add to a container image
 You can bundle the statically compiled lprobe in your container image. Choose a binary release and download it in your Dockerfile:
 ```
-RUN LPROBE_VERSION=v0.0.1 && \
+RUN LPROBE_VERSION=v0.0.2 && \
     wget -qO/bin/lprobe https://github.com/fivexl/lprobe/releases/download/${LPROBE_VERSION}/lprobe-linux-amd64 && \
     chmod +x /bin/lprobe
 ```
