@@ -48,9 +48,8 @@ jobs:
 
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3.2.0
-      continue-on-error: true
       with:
-        version: v1.48
+        version: v1.50.1
 
     - name: Prepare a snapshot release
       if: "!startsWith(github.ref, 'refs/tags/v')"

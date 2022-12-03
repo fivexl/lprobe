@@ -49,7 +49,7 @@ var (
 )
 
 const (
-	// Address to call 
+	// LocalAddress to call 
 	LocalAddress = "127.0.0.1"
 	// StatusInvalidArguments indicates specified invalid arguments.
 	StatusInvalidArguments = 1

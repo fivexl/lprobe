@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"google.golang.org/grpc/credentials"
 )
@@ -25,7 +25,7 @@ func buildCredentials(skipVerify bool, caCerts, clientCert, clientKey, serverNam
 	} else if caCerts != "" {
 		// override system roots
 		rootCAs := x509.NewCertPool()
-		pem, err := ioutil.ReadFile(caCerts)
+		pem, err := os.ReadFile(caCerts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load root CA certificates from file (%s) error=%v", caCerts, err)
 		}
