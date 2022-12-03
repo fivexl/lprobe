@@ -26,25 +26,26 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/alts"
+	"google.golang.org/grpc/credentials/insecure"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
 //nolint:all
-func grpc_healthcheck(port int) (string) {
+func grpcHealthCheck(port int) (string) {
 	status, code := grpchealthprobe(LocalAddress + ":" + strconv.Itoa(port))
 	if code != 0 {
 		// Error status
 		return status
-	} else {
-		return ""
 	}
+	return ""
 }
 
 func grpchealthprobe(flAddr string) (string, int) {
 
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 
 	opts := []grpc.DialOption{
@@ -66,7 +67,8 @@ func grpchealthprobe(flAddr string) (string, int) {
 		creds := alts.NewServerCreds(alts.DefaultServerOptions())
 		opts = append(opts, grpc.WithTransportCredentials(creds))
 	} else if flSPIFFE {
-		spiffeCtx, _ := context.WithTimeout(ctx, flRPCTimeout)
+		spiffeCtx, cancel := context.WithTimeout(ctx, flRPCTimeout)
+		defer cancel()
 		source, err := workloadapi.NewX509Source(spiffeCtx)
 		if err != nil {
 			log.Printf("failed to initialize tls credentials with spiffe. error=%v", err)
@@ -82,13 +84,13 @@ func grpchealthprobe(flAddr string) (string, int) {
 		creds := credentials.NewTLS(tlsconfig.MTLSClientConfig(source, source, tlsconfig.AuthorizeAny()))
 		opts = append(opts, grpc.WithTransportCredentials(creds))
 	} else {
-		opts = append(opts, grpc.WithInsecure())
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
 	if flGZIP {
 		opts = append(opts,
-			grpc.WithCompressor(grpc.NewGZIPCompressor()),
-			grpc.WithDecompressor(grpc.NewGZIPDecompressor()),
+			grpc.WithCompressor(grpc.NewGZIPCompressor()), 		//nolint:all 
+			grpc.WithDecompressor(grpc.NewGZIPDecompressor()),	//nolint:all
 		)
 	}
 

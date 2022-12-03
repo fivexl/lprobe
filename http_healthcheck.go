@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-func http_healthcheck(port int, endpoint string) (*http.Response, error) {
+func httpHealthCheck(port int, endpoint string) (*http.Response, error) {
 	//TODO if we get endpoint without / , add it 
 	//TODO add TLS support
 	var protocol string
