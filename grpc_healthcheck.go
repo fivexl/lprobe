@@ -33,8 +33,8 @@ import (
 )
 
 //nolint:all
-func grpcHealthCheck(port int) (string) {
-	status, code := grpchealthprobe(LocalAddress + ":" + strconv.Itoa(port))
+func grpcHealthCheck() (string) {
+	status, code := grpchealthprobe(LocalAddress + ":" + strconv.Itoa(flPort))
 	if code != 0 {
 		// Error status
 		return status

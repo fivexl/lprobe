@@ -1,19 +1,41 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
+	"crypto/tls"
 )
 
-func httpHealthCheck(port int, endpoint string) (*http.Response, error) {
-	//TODO if we get endpoint without / , add it 
-	//TODO add TLS support
-	var protocol string
+func httpHealthCheck() (*http.Response, error) {
+
+	var	endpoint string
+	var	protocol string
+
+	if strings.HasPrefix(flEndpoint, "/") {
+		endpoint = flEndpoint
+	} else {
+		endpoint = "/" + flEndpoint
+	}
+
 	if flTLS {
 		protocol = "https"
 	} else {
 		protocol = "http"
 	}
-	return http.Get(fmt.Sprintf("%s://%s:%s%s", protocol, LocalAddress, strconv.Itoa(port), endpoint))
+
+    httpTransport := &http.Transport{
+        TLSClientConfig: &tls.Config{InsecureSkipVerify: flTLSNoVerify},
+    }
+
+	httpClient := &http.Client{
+		Transport: httpTransport,
+		Timeout: flConnTimeout,
+	}
+
+	url := protocol + "://" + LocalAddress + ":" + strconv.Itoa(flPort) + endpoint
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("User-Agent", flUserAgent)
+	res, err := httpClient.Do(req)
+	return res, err
 }
