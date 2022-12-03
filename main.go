@@ -9,14 +9,14 @@ func main() {
 
 	if flMode == "http" {
 		// HTTP check
-		_, err := httpHealthCheck(flPort, flEndpoint)
+		_, err := httpHealthCheck()
 		if err != nil {
 			fmt.Printf("Error: %v", err)
 			os.Exit(1)
 		}
 	} else if flMode == "grpc" {
 		// gRPC check
-		status := grpcHealthCheck(flPort)
+		status := grpcHealthCheck()
 		if status != "" {
 			fmt.Printf("Error: %v", status)
 			os.Exit(1)
