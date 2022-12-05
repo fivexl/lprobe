@@ -1,7 +1,7 @@
 [![FivexL](https://releases.fivexl.io/fivexlbannergit.jpg)](https://fivexl.io/)
 
-# lprobe
-A command-line tool to perform Local Health Check Probes inside Container Images (ECS, Docker)
+# Why lprobe?
+A command-line tool to perform Local Health Check Probes inside Container Images (ECS, Docker, Kubernetes). When your container gets breached, the intruder/attacker can use tools like wget or curl to download more tools for further exploitation and lateral movement within your system. Thus we developed lprobe as wget/curl replacement for hardened and secure container images.
 ## HOW TO
 ### Local run
 ```shell
