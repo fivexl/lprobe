@@ -9,7 +9,7 @@ func main() {
 
 	if flMode == "http" {
 		// HTTP check
-		_, err := httpHealthCheck()
+		err := httpHealthCheck()
 		if err != nil {
 			fmt.Printf("Error: %v", err)
 			os.Exit(1)

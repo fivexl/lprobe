@@ -57,7 +57,7 @@ func grpchealthprobe(flAddr string) (string, int) {
 		return "ERR", StatusInvalidArguments
 	}
 	if flTLS {
-		creds, err := buildCredentials(flTLSNoVerify, flTLSCACert, flTLSClientCert, flTLSClientKey, flTLSServerName)
+		creds, _ , err := buildCredentials(flTLSNoVerify, flTLSCACert, flTLSClientCert, flTLSClientKey, flTLSServerName)
 		if err != nil {
 			log.Printf("failed to initialize tls credentials. error=%v", err)
 			return "ERR", StatusInvalidArguments
