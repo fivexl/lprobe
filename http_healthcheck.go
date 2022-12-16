@@ -33,7 +33,7 @@ func httpHealthCheck() (*http.Response, error) {
 		Timeout: flConnTimeout,
 	}
 
-	url := protocol + "://" + LocalAddress + ":" + strconv.Itoa(flPort) + endpoint
+	url := protocol + "://" + getAddr() + ":" + strconv.Itoa(flPort) + endpoint
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", flUserAgent)
 	res, err := httpClient.Do(req)

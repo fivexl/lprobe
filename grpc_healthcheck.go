@@ -34,7 +34,7 @@ import (
 
 //nolint:all
 func grpcHealthCheck() (string) {
-	status, code := grpchealthprobe(LocalAddress + ":" + strconv.Itoa(flPort))
+	status, code := grpchealthprobe(getAddr() + ":" + strconv.Itoa(flPort))
 	if code != 0 {
 		// Error status
 		return status

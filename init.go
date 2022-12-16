@@ -29,6 +29,7 @@ import (
 
 var (
 	flMode			string
+	flIPv6			bool
 	flPort 			int
 	flUserAgent     string	
 	flEndpoint 		string
@@ -51,6 +52,8 @@ var (
 const (
 	// LocalAddress to call 
 	LocalAddress = "127.0.0.1"
+	// LocalAddress6 IPv6 to call 
+	LocalAddress6 = "[::1]"
 	// StatusInvalidArguments indicates specified invalid arguments.
 	StatusInvalidArguments = 1
 	// StatusConnectionFailure indicates connection failed.
@@ -67,11 +70,19 @@ func getSupportedModes() []string {
 	return []string{"http", "grpc"}
 }
 
+func getAddr() string {
+	if flIPv6 {
+		return LocalAddress6
+	}
+	return LocalAddress
+}
+
 func init() {
 	flagSet := flag.NewFlagSet("", flag.ContinueOnError)
 	log.SetFlags(0)
 	// core settings
 	flagSet.StringVar(&flMode, "mode", "http", "Select mode: http, grpc (default: http)")
+	flagSet.BoolVar(&flIPv6, "ipv6", false, "Use IPv6 ::1 address (default: false)")
 	flagSet.IntVar(&flPort, "port", 8080, "port number to check (defaut 8080)")
 	flagSet.StringVar(&flUserAgent, "user-agent", "lprobe", "user-agent header value of health check requests")
 	// HTTP settings
