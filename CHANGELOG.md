@@ -1,3 +1,8 @@
+### v0.0.5
+
+- http mode features: tls-ca-cert, tls-client-cert, tls-client-key, tls-server-name
+- new feature: ipv6 [::1]
+
 ### v0.0.4
 
 - http mode features: tls-no-verify, connect-timeout, user-agent 

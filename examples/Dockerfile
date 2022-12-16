@@ -1,5 +1,5 @@
 FROM nginx:alpine
-ARG LPROBE_VERSION=v0.0.4
+ARG LPROBE_VERSION=v0.0.5
 ARG TARGETPLATFORM
 RUN case ${TARGETPLATFORM} in \
          "linux/amd64")  LPROBE_ARCH=amd64  ;; \
