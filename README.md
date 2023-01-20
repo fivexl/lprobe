@@ -1,7 +1,7 @@
 [![FivexL](https://releases.fivexl.io/fivexlbannergit.jpg)](https://fivexl.io/)
 
-# Why lprobe?
-A command-line tool to perform Local Health Check Probes inside Container Images (ECS, Docker, Kubernetes). When your container gets breached, the intruder/attacker can use tools like wget or curl to download more tools for further exploitation and lateral movement within your system. Thus we developed lprobe as wget/curl replacement for hardened and secure container images.
+# Why LProbe?
+A command-line tool to perform Local Health Check Probes inside Container Images (ECS, Docker, Kubernetes). When your container gets breached, the intruder/attacker can use tools like wget or curl to download more tools for further exploitation and lateral movement within your system. Thus we developed LProbe as wget/curl replacement for hardened and secure container images.
 ## HOW TO
 ### Local run
 ```shell
@@ -14,7 +14,7 @@ A command-line tool to perform Local Health Check Probes inside Container Images
 ```
 
 ### Add to a container image
-You can bundle the statically compiled lprobe in your container image. Choose a binary release and download it in your Dockerfile:
+You can bundle the statically compiled LProbe in your container image. Choose a binary release and download it in your Dockerfile:
 ```
 ARG LPROBE_VERSION=v0.0.5
 ARG TARGETPLATFORM
@@ -23,7 +23,8 @@ RUN case ${TARGETPLATFORM} in \
          "linux/arm64")  LPROBE_ARCH=arm64  ;; \
     esac \
  && wget -qO/bin/lprobe https://github.com/fivexl/lprobe/releases/download/${LPROBE_VERSION}/lprobe-linux-${LPROBE_ARCH} \
- && chmod +x /bin/lprobe
+ && chmod +x /bin/lprobe \
+ && rm -f /usr/bin/wget
 ```
 
 ### Docker Healthcheck 
