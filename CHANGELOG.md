@@ -1,3 +1,7 @@
+### v0.0.6
+
+- container images with lprobe inside. ghcr.io as registry. 
+
 ### v0.0.5
 
 - http mode features: tls-ca-cert, tls-client-cert, tls-client-key, tls-server-name
