@@ -69,5 +69,11 @@ go mod tidy
 go run .
 ```
 
+```
+go mod edit -go=1.21
+go get -u -t -x ./...
+go mod tidy
+```
+
 # Source code used
 - https://github.com/grpc-ecosystem/grpc-health-probe
