@@ -15,7 +15,7 @@ echo "Wait 5s"
 sleep 5
 
 ### HTTP Check Test
-./lprobe -mode=http -port=8080 -endpoint=/
+./lprobe -mode=http -port=8080 -endpoint=/ -http-codes=200-298,299
 if [ "$?" != 0 ]; then
     echo "HTTP test failed"
     docker stop nginx-lprobe-test

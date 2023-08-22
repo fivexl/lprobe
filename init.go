@@ -33,6 +33,7 @@ var (
 	flPort 			int
 	flUserAgent     string	
 	flEndpoint 		string
+	flHTTPCodes     string  
 	flService       string
 	flConnTimeout   time.Duration
 	flRPCHeaders    = rpcHeaders{MD: make(metadata.MD)}
@@ -87,6 +88,7 @@ func init() {
 	flagSet.StringVar(&flUserAgent, "user-agent", "lprobe", "user-agent header value of health check requests")
 	// HTTP settings
 	flagSet.StringVar(&flEndpoint, "endpoint", "/", "HTTP endpoint (default: /)")
+	flagSet.StringVar(&flHTTPCodes, "http-codes", "200-299", "comma-separated list of expected HTTP status codes (default: 200-299) with optional ranges (e.g. 200,201,202-204,301-303")
 	// gRPC settings
 	flagSet.StringVar(&flService, "service", "", "service name to check (default: \"\")")
 	// timeouts

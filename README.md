@@ -2,6 +2,7 @@
 
 # Why LProbe?
 A command-line tool to perform Local Health Check Probes inside Container Images (ECS, Docker, Kubernetes). When your container gets breached, the intruder/attacker can use tools like wget or curl to download more tools for further exploitation and lateral movement within your system. Thus we developed LProbe as wget/curl replacement for hardened and secure container images.
+
 ## HOW TO
 ### Local run
 ```shell
@@ -67,6 +68,12 @@ export GO111MODULE=on
 go mod init lprobe
 go mod tidy
 go run .
+```
+
+```
+go mod edit -go=1.21
+go get -u -t -x ./...
+go mod tidy
 ```
 
 # Source code used
