@@ -15,7 +15,7 @@ jobs:
     steps:
 
     - name: Set up Go 1.x
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
         go-version: ^1.21
       id: go      
@@ -39,7 +39,7 @@ jobs:
     steps:
 
     - name: Set up Go 1.x
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
         go-version: ^1.21
       id: go
@@ -60,9 +60,9 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v3.2.0
+      uses: golangci/golangci-lint-action@v3.7.0
       with:
-        version: v1.50.1
+        version: v1.54
 
     - name: Prepare a snapshot release
       if: "!startsWith(github.ref, 'refs/tags/v')"
