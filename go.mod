@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/spiffe/go-spiffe/v2 v2.1.6
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
-	google.golang.org/grpc v1.57.0
+	google.golang.org/grpc v1.57.1
 )
 
 require (
