@@ -78,3 +78,10 @@ go mod tidy
 
 # Source code used
 - https://github.com/grpc-ecosystem/grpc-health-probe
+
+
+
+## Weekly review link
+
+- [Review](https://github.com/fivexl/lprobe/compare/main@%7B7day%7D...main)
+- [Review branch-based review](https://github.com/fivexl/lprobe/compare/review...main)
