@@ -15,10 +15,10 @@ jobs:
     steps:
 
     - name: Set up Go 1.x
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: ^1.21
-      id: go      
+        go-version-file: 'go.mod'
+      id: go
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v4
@@ -39,9 +39,9 @@ jobs:
     steps:
 
     - name: Set up Go 1.x
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: ^1.21
+        go-version-file: 'go.mod'
       id: go
 
     - name: Check out code into the Go module directory
@@ -65,7 +65,7 @@ jobs:
         version: v1.54
 
     - name: Prepare a snapshot release
-      if: "!startsWith(github.ref, 'refs/tags/v')"
+      if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
       uses: goreleaser/goreleaser-action@v3
       with:
         version: latest
@@ -75,7 +75,7 @@ jobs:
         DOCKER_CLI_EXPERIMENTAL: "enabled"
 
     - name: Release a new version
-      if: startsWith(github.ref, 'refs/tags/v')
+      if: ${{ startsWith(github.ref, 'refs/tags/v') }}
       uses: goreleaser/goreleaser-action@v4
       with:
         version: latest
