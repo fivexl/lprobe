@@ -50,7 +50,9 @@ func grpchealthprobe(flAddr string) (string, int) {
 
 	opts := []grpc.DialOption{
 		grpc.WithUserAgent(flUserAgent),
-		grpc.WithTimeout(flConnTimeout),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			MinConnectTimeout: flConnTimeout,
+		}),
 	}
 	if flTLS && flSPIFFE {
 		log.Printf("-tls and -spiffe are mutually incompatible")
