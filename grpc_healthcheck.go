@@ -50,7 +50,9 @@ func grpchealthprobe(flAddr string) (string, int) {
 
 	opts := []grpc.DialOption{
 		grpc.WithUserAgent(flUserAgent),
-		grpc.WithBlock(),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			MinConnectTimeout: flConnTimeout,
+		}),
 	}
 	if flTLS && flSPIFFE {
 		log.Printf("-tls and -spiffe are mutually incompatible")
@@ -98,9 +100,10 @@ func grpchealthprobe(flAddr string) (string, int) {
 		log.Print("establishing connection")
 	}
 	connStart := time.Now()
-	dialCtx, dialCancel := context.WithTimeout(ctx, flConnTimeout)
-	defer dialCancel()
-	conn, err := grpc.DialContext(dialCtx, flAddr, opts...)
+	conn, err := grpc.NewClient(
+		flAddr,
+		opts...,
+	)
 	if err != nil {
 		if err == context.DeadlineExceeded {
 			log.Printf("timeout: failed to connect service %q within %v", flAddr, flConnTimeout)
