@@ -62,6 +62,31 @@ spec:
       initialDelaySeconds: 10
 ```
 
+### It is possible to use Lprobe as mounted volume 
+
+To use Lprobe via volume mounts, you need to download the Lprobe binary and place it in the volume. Here is how you can do it:
+
+1. Download the Lprobe binary:
+```
+wget -qO ./Lprobe https://github.com/fivexl/lprobe/releases/download/v0.1.5/lprobe-linux-amd64
+chmod +x ./Lprobe
+```
+
+2. Update your Docker Compose file to mount the Lprobe binary:
+```
+services:
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./Lprobe:/Lprobe
+    healthcheck:
+      test: /Lprobe -mode=http -port=80 -endpoint=/
+      interval: 60s
+      retries: 3
+      start_period: 10s
+      timeout: 3s
+```
+
 # Dev Guide
 ```
 export GO111MODULE=on
