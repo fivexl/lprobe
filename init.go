@@ -18,6 +18,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -48,6 +50,8 @@ var (
 	flVerbose       bool
 	flGZIP          bool
 	flSPIFFE        bool
+	flURL           string
+	flHost          string
 )
 
 const (
@@ -55,6 +59,12 @@ const (
 	LocalAddress = "127.0.0.1"
 	// LocalAddress6 IPv6 to call 
 	LocalAddress6 = "[::1]"
+	// AWS metadata IPv4 address
+	AWSMetadataIPv4 = "169.254.169.254"
+	// AWS EKS metadata IPv4 address
+	AWSEKSIPv4 = "169.254.170.2"
+	// AWS metadata IPv6 address
+	AWSMetadataIPv6 = "fd00:ec2::254"
 	// StatusInvalidArguments indicates specified invalid arguments.
 	StatusInvalidArguments = 1
 	// StatusConnectionFailure indicates connection failed.
@@ -71,7 +81,60 @@ func getSupportedModes() []string {
 	return []string{"http", "grpc"}
 }
 
+func validateHostname(hostname string) error {
+	if hostname == "" {
+		return nil
+	}
+
+	// Check if it's already an IP address
+	if ip := net.ParseIP(hostname); ip != nil {
+		return validateIPAddress(ip)
+	}
+
+	// Resolve hostname to IP addresses
+	ips, err := net.LookupIP(hostname)
+	if err != nil {
+		return fmt.Errorf("failed to resolve hostname %q: %v", hostname, err)
+	}
+
+	// Check if any resolved IP is allowed
+	for _, ip := range ips {
+		if err := validateIPAddress(ip); err != nil {
+			return fmt.Errorf("hostname %q resolves to disallowed IP %s: %v", hostname, ip, err)
+		}
+	}
+
+	return nil
+}
+
+func validateIPAddress(ip net.IP) error {
+	// Check IPv4 addresses
+	if ip.To4() != nil {
+		if ip.String() == LocalAddress || ip.String() == AWSMetadataIPv4 || ip.String() == AWSEKSIPv4 {
+			return nil
+		}
+		return fmt.Errorf("IPv4 address %s is not allowed (only localhost and AWS metadata endpoints permitted)", ip)
+	}
+
+	// Check IPv6 addresses
+	if ip.To16() != nil {
+		// Remove zone index if present (e.g., ::1%eth0)
+		ipWithoutZone := net.IP(ip.To16())
+		if ipWithoutZone.String() == "::1" || ipWithoutZone.String() == AWSMetadataIPv6 {
+			return nil
+		}
+		return fmt.Errorf("IPv6 address %s is not allowed (only localhost and AWS metadata endpoints permitted)", ip)
+	}
+
+	return fmt.Errorf("invalid IP address format: %s", ip)
+}
+
 func getAddr() string {
+	// If URL is provided, use hostname from URL (already validated)
+	if flURL != "" && flHost != "" {
+		return flHost
+	}
+	// Otherwise use localhost
 	if flIPv6 {
 		return LocalAddress6
 	}
@@ -107,6 +170,7 @@ func init() {
 	flagSet.BoolVar(&flVerbose, "v", false, "verbose logs")
 	flagSet.BoolVar(&flGZIP, "gzip", false, "use GZIPCompressor for requests and GZIPDecompressor for response (default: false)")
 	flagSet.BoolVar(&flSPIFFE, "spiffe", false, "use SPIFFE to obtain mTLS credentials")
+	flagSet.StringVar(&flURL, "url", "", "Complete URL to check (e.g., http://example.com:8080/path)")
 
 	err := flagSet.Parse(os.Args[1:])
 	if err != nil {
@@ -116,6 +180,49 @@ func init() {
 	argError := func(s string, v ...interface{}) {
 		log.Printf("error: "+s, v...)
 		os.Exit(StatusInvalidArguments)
+	}
+
+	// Parse URL if provided
+	if flURL != "" {
+		parsedURL, err := url.Parse(flURL)
+		if err != nil {
+			argError("invalid URL format: %v", err)
+		}
+
+		// Set mode based on scheme
+		if parsedURL.Scheme == "https" {
+			flTLS = true
+		} else if parsedURL.Scheme != "http" {
+			argError("unsupported URL scheme: %s (only http and https are supported)", parsedURL.Scheme)
+		}
+
+		// Override port if specified in URL
+		if parsedURL.Port() != "" {
+			fmt.Sscanf(parsedURL.Port(), "%d", &flPort)
+		} else if parsedURL.Scheme == "https" {
+			flPort = 443
+		} else if parsedURL.Scheme == "http" {
+			flPort = 80
+		}
+
+		// Override endpoint if path is specified
+		if parsedURL.Path != "" {
+			flEndpoint = parsedURL.Path
+		}
+
+		// Set hostname from URL
+		if parsedURL.Hostname() != "" {
+			hostname := parsedURL.Hostname()
+			if err := validateHostname(hostname); err != nil {
+				argError("hostname validation failed: %v", err)
+			}
+			flHost = hostname
+		}
+
+		// Set server name for TLS verification if hostname is available
+		if flTLS && parsedURL.Hostname() != "" {
+			flTLSServerName = parsedURL.Hostname()
+		}
 	}
 
 	if !slices.Contains(getSupportedModes(), flMode)  {
@@ -190,4 +297,3 @@ func (s *rpcHeaders) Set(value string) error {
 	s.Append(parts[0], trimmed)
 	return nil
 }
-
