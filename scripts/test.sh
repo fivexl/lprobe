@@ -63,6 +63,30 @@ if [ "$?" != 1 ]; then
     exit 1
 fi
 
+### URL HTTP Check Test
+./lprobe -url http://127.0.0.1:8080/ -v
+if [ "$?" != 0 ]; then
+    echo "URL HTTP test failed"
+    docker stop nginx-lprobe-test
+    exit 1
+fi
+
+### URL HTTP with custom path Check Test
+./lprobe -url http://127.0.0.1:8080/ -v
+if [ "$?" != 0 ]; then
+    echo "URL HTTP path test failed"
+    docker stop nginx-lprobe-test
+    exit 1
+fi
+
+### FAIL URL HTTP Check Test
+./lprobe -url http://127.0.0.1:7777/ -v
+if [ "$?" != 1 ]; then
+    echo "FAIL URL HTTP test failed"
+    docker stop nginx-lprobe-test
+    exit 1
+fi
+
 ## Stop docker containers
 docker stop nginx-lprobe-test
 docker stop grpc-lprobe-test

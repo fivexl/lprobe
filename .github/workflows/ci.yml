@@ -2,28 +2,33 @@ name: CI
 
 on:
   push:
-    tags: [ v* ]
-    branches: [ main ]
+    tags: [v*]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+env:
+  # Default registry - can be overridden by repository variables
+  REGISTRY: ${{ vars.REGISTRY || 'ghcr.io' }}
+  # Default image name - can be overridden by repository variables  
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || github.repository }}
 
 jobs:
-
   tests:
     name: tests
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Set up Go 1.x
-      uses: actions/setup-go@v5
-      with:
-        go-version-file: 'go.mod'
-    
-    - name: Run test.sh
-      run: |
-        scripts/test.sh
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+
+      - name: Run test.sh
+        run: |
+          scripts/test.sh
 
   build:
     name: Build
@@ -33,46 +38,51 @@ jobs:
       contents: write
       pull-requests: read
       checks: write
-    needs: [ tests ]
+    needs: [tests]
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Set up Go 1.x
-      uses: actions/setup-go@v5
-      with:
-        go-version-file: 'go.mod'
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-    - name: Docker Login
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: golangci-lint
-      uses: golangci/golangci-lint-action@v6
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
 
-    - name: Prepare a snapshot release
-      if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-      uses: goreleaser/goreleaser-action@v3
-      with:
-        version: latest
-        args: release --clean --snapshot
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        DOCKER_CLI_EXPERIMENTAL: "enabled"
+      - name: Prepare a snapshot release
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: goreleaser/goreleaser-action@v3
+        with:
+          version: latest
+          args: release --clean --snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKER_CLI_EXPERIMENTAL: "enabled"
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
 
-    - name: Release a new version
-      if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-      uses: goreleaser/goreleaser-action@v4
-      with:
-        version: latest
-        args: release --clean
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        DOCKER_CLI_EXPERIMENTAL: "enabled"
-
+      - name: Release a new version
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKER_CLI_EXPERIMENTAL: "enabled"
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}

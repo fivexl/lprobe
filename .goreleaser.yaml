@@ -31,7 +31,7 @@ changelog:
   use: github
 
 dockers:
-- image_templates: ["ghcr.io/fivexl/{{ .ProjectName }}:{{ .Version }}-amd64"]
+- image_templates: ["{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-amd64"]
   goos: linux
   goarch: amd64
   dockerfile: Dockerfile
@@ -40,13 +40,13 @@ dockers:
   - --platform=linux/amd64
   - --label=org.opencontainers.image.title={{ .ProjectName }}
   - --label=org.opencontainers.image.description={{ .ProjectName }}
-  - --label=org.opencontainers.image.url=https://github.com/fivexl/{{ .ProjectName }}
-  - --label=org.opencontainers.image.source=https://github.com/fivexl/{{ .ProjectName }}
+  - --label=org.opencontainers.image.url=https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER }}/{{ .ProjectName }}
+  - --label=org.opencontainers.image.source=https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER }}/{{ .ProjectName }}
   - --label=org.opencontainers.image.version={{ .Version }}
   - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
   - --label=org.opencontainers.image.revision={{ .FullCommit }}
   - --label=org.opencontainers.image.licenses=Apache-2.0
-- image_templates: ["ghcr.io/fivexl/{{ .ProjectName }}:{{ .Version }}-arm64v8"]
+- image_templates: ["{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-arm64v8"]
   goos: linux
   goarch: arm64
   dockerfile: Dockerfile
@@ -55,18 +55,18 @@ dockers:
   - --platform=linux/arm64/v8
   - --label=org.opencontainers.image.title={{ .ProjectName }}
   - --label=org.opencontainers.image.description={{ .ProjectName }}
-  - --label=org.opencontainers.image.url=https://github.com/fivexl/{{ .ProjectName }}
-  - --label=org.opencontainers.image.source=https://github.com/fivexl/{{ .ProjectName }}
+  - --label=org.opencontainers.image.url=https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER }}/{{ .ProjectName }}
+  - --label=org.opencontainers.image.source=https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER }}/{{ .ProjectName }}
   - --label=org.opencontainers.image.version={{ .Version }}
   - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
   - --label=org.opencontainers.image.revision={{ .FullCommit }}
   - --label=org.opencontainers.image.licenses=Apache-2.0
 docker_manifests:
-- name_template: ghcr.io/fivexl/{{ .ProjectName }}:{{ .Version }}
+- name_template: "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}"
   image_templates:
-  - ghcr.io/fivexl/{{ .ProjectName }}:{{ .Version }}-amd64
-  - ghcr.io/fivexl/{{ .ProjectName }}:{{ .Version }}-arm64v8
-- name_template: ghcr.io/fivexl/{{ .ProjectName }}:latest
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-amd64"
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-arm64v8"
+- name_template: "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:latest"
   image_templates:
-  - ghcr.io/fivexl/{{ .ProjectName }}:{{ .Version }}-amd64
-  - ghcr.io/fivexl/{{ .ProjectName }}:{{ .Version }}-arm64v8
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-amd64"
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-arm64v8"
