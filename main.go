@@ -7,14 +7,15 @@ import (
 
 func main() {
 
-	if flMode == "http" {
+	switch flMode {
+	case "http":
 		// HTTP check
 		err := httpHealthCheck()
 		if err != nil {
 			fmt.Printf("Error: %v", err)
 			os.Exit(1)
 		}
-	} else if flMode == "grpc" {
+	case "grpc":
 		// gRPC check
 		status := grpcHealthCheck()
 		if status != "" {
@@ -22,7 +23,7 @@ func main() {
 			os.Exit(1)
 		}
 		os.Exit(0)
-	} else {
+	default:
 		// unkown check
 		fmt.Printf("Error: Unsupported -mode. Please use one of %v", getSupportedModes())
 		os.Exit(1)
