@@ -83,7 +83,11 @@ func httpHealthCheck() (error) {
 		log.Printf("failed to execute http request. error=%v", respErr)
 		return respErr
 	}
-	defer httpResponse.Body.Close()
+	defer func() {
+		if err := httpResponse.Body.Close(); err != nil {
+			log.Printf("failed to close http response body. error=%v", err)
+		}
+	}()
 
 	// check http response code
 	if !validHTTPCodes[httpResponse.StatusCode] {

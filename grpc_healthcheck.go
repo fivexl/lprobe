@@ -113,7 +113,11 @@ func grpchealthprobe(flAddr string) (string, int) {
 		return "ERR", StatusConnectionFailure
 	}
 	connDuration := time.Since(connStart)
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Printf("error closing gRPC connection: %v", err)
+		}
+	}()
 	if flVerbose {
 		log.Printf("connection established (took %v)", connDuration)
 	}
