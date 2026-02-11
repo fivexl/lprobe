@@ -14,10 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Set up Go 1.x
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: 'go.mod'
     
@@ -36,10 +36,10 @@ jobs:
     needs: [ tests ]
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Set up Go 1.x
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: 'go.mod'
 
@@ -54,11 +54,11 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v6
+      uses: golangci/golangci-lint-action@v9
 
     - name: Prepare a snapshot release
       if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-      uses: goreleaser/goreleaser-action@v3
+      uses: goreleaser/goreleaser-action@v6
       with:
         version: latest
         args: release --clean --snapshot
@@ -68,7 +68,7 @@ jobs:
 
     - name: Release a new version
       if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-      uses: goreleaser/goreleaser-action@v4
+      uses: goreleaser/goreleaser-action@v6
       with:
         version: latest
         args: release --clean
