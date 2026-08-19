@@ -23,7 +23,6 @@ import (
 	"time"
 	"unicode"
 
-	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -118,8 +117,16 @@ func init() {
 		os.Exit(StatusInvalidArguments)
 	}
 
-	if !slices.Contains(getSupportedModes(), flMode)  {
-		argError("Unsupported -mode. Please use one of %v", getSupportedModes())
+	supportedModes := getSupportedModes()
+	modeSupported := false
+	for _, mode := range supportedModes {
+		if mode == flMode {
+			modeSupported = true
+			break
+		}
+	}
+	if !modeSupported {
+		argError("Unsupported -mode. Please use one of %v", supportedModes)
 	}
 	if flConnTimeout <= 0 {
 		argError("-connect-timeout must be greater than zero (specified: %v)", flConnTimeout)
