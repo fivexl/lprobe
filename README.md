@@ -98,6 +98,28 @@ services:
       timeout: 3s
 ```
 
+### Verify a release
+Releases from v0.2.3 on are signed keylessly by this repository's CI workflow and carry SPDX SBOMs and build provenance.
+
+Binaries: check the checksum file's signature, then the binary against it.
+```shell
+cosign verify-blob checksums.txt \
+  --bundle checksums.txt.sigstore.json \
+  --certificate-identity-regexp '^https://github\.com/fivexl/lprobe/\.github/workflows/ci\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+sha256sum --ignore-missing -c checksums.txt
+gh attestation verify lprobe-linux-amd64 -R fivexl/lprobe
+```
+
+Container image:
+```shell
+cosign verify ghcr.io/fivexl/lprobe:0.2.3 \
+  --certificate-identity-regexp '^https://github\.com/fivexl/lprobe/\.github/workflows/ci\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+gh attestation verify oci://ghcr.io/fivexl/lprobe:0.2.3 -R fivexl/lprobe
+```
+The SBOM is attached to each platform image (`0.2.3-amd64`, `0.2.3-arm64v8`); read it with `cosign verify-attestation --type spdxjson` and the same identity flags.
+
 # Dev Guide
 ```
 export GO111MODULE=on
