@@ -21,7 +21,10 @@ jobs:
     - name: Set up Go 1.x
       uses: actions/setup-go@v6
       with:
-        go-version-file: 'go.mod'
+        # Latest stable release, so each build picks up Go security patches.
+        # go.mod's toolchain line stays the minimum for local builds.
+        go-version: 'stable'
+        check-latest: true
     
     - name: Run test.sh
       run: |
@@ -43,7 +46,10 @@ jobs:
     - name: Set up Go 1.x
       uses: actions/setup-go@v6
       with:
-        go-version-file: 'go.mod'
+        # Latest stable release, so each build picks up Go security patches.
+        # go.mod's toolchain line stays the minimum for local builds.
+        go-version: 'stable'
+        check-latest: true
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
