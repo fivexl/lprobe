@@ -15,17 +15,17 @@
 A command-line tool to perform Local Health Check Probes inside Container Images (ECS, Docker, Kubernetes). When your container gets breached, the intruder/attacker can use tools like wget or curl to download more tools for further exploitation and lateral movement within your system. Thus we developed LProbe as wget/curl replacement for hardened and secure container images.
 
 ## HOW TO
-### Local run
+### Local Run
 ```shell
 ./lprobe -port=8080 -endpoint=/
 ```
 
-### Local run for gRPC
+### Local Run for gRPC
 ```shell
 ./lprobe -port=8080 -mode=grpc
 ```
 
-### Add to a container image
+### Add to a Container Image
 You can bundle the statically compiled LProbe in your container image. Choose a binary release and download it in your Dockerfile:
 ```
 ARG LPROBE_VERSION=v0.0.6
@@ -39,7 +39,7 @@ RUN case ${TARGETPLATFORM} in \
  && rm -f /usr/bin/wget
 ```
 
-### Add to a container image from lprobe containter
+### Add to a Container Image from the LProbe Container
 ```
 FROM scratch
 COPY --from=ghcr.io/fivexl/lprobe:0.0.6 /lprobe /bin/lprobe
@@ -55,7 +55,7 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=5s --retries=3 CMD [ "lpr
 [ "CMD", "lprobe", "-port=8080", "-endpoint=/healthz"]
 ```
 
-### Kubernetes (k8S) Healthcheck
+### Kubernetes (K8s) Healthcheck
 ```
 spec:
   containers:
@@ -98,6 +98,28 @@ services:
       timeout: 3s
 ```
 
+### Verify a Release
+Releases from v0.2.3 on are signed keylessly by this repository's CI workflow and carry SPDX SBOMs and build provenance.
+
+Binaries: check the checksum file's signature, then the binary against it.
+```shell
+cosign verify-blob checksums.txt \
+  --bundle checksums.txt.sigstore.json \
+  --certificate-identity-regexp '^https://github\.com/fivexl/lprobe/\.github/workflows/ci\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+sha256sum --ignore-missing -c checksums.txt
+gh attestation verify lprobe-linux-amd64 -R fivexl/lprobe
+```
+
+Container image:
+```shell
+cosign verify ghcr.io/fivexl/lprobe:0.2.3 \
+  --certificate-identity-regexp '^https://github\.com/fivexl/lprobe/\.github/workflows/ci\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+gh attestation verify oci://ghcr.io/fivexl/lprobe:0.2.3 -R fivexl/lprobe
+```
+The SBOM is attached to each platform image (`0.2.3-amd64`, `0.2.3-arm64v8`); read it with `cosign verify-attestation --type spdxjson` and the same identity flags.
+
 # Dev Guide
 ```
 export GO111MODULE=on
@@ -112,12 +134,12 @@ go get -u -t -x ./...
 go mod tidy
 ```
 
-# Source code used
+# Source Code Used
 - https://github.com/grpc-ecosystem/grpc-health-probe
 
 
 
-## Weekly review link
+## Weekly Review Link
 
 - [Review](https://github.com/fivexl/lprobe/compare/main@%7B7day%7D...main)
 - [Review branch-based review](https://github.com/fivexl/lprobe/compare/review...main)
