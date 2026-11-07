@@ -6,6 +6,9 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  # Weekly, so a CVE disclosed after a release still turns CI red.
+  schedule:
+    - cron: '0 6 * * 1'
 
 jobs:
 
@@ -30,6 +33,18 @@ jobs:
       run: |
         scripts/test.sh
 
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - name: Check Go stdlib and modules for known vulnerabilities
+      uses: golang/govulncheck-action@v1
+      with:
+        go-version-input: 'stable'
+        check-latest: true
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -38,7 +53,7 @@ jobs:
       contents: write
       pull-requests: read
       checks: write
-    needs: [ tests ]
+    needs: [ tests, govulncheck ]
     steps:
     - name: Checkout
       uses: actions/checkout@v6
